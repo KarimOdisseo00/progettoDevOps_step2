@@ -1,0 +1,51 @@
+name: C++ MPI Matrix Multiplication CI 
+
+# Trigger the workflow on push or pull request events to the main branch
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    # Specifies that the job runs on the latest version of Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      # Checks out the source code of your repository
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mpich libgtest-dev cmake
+      # Installs necessary dependencies including MPICH for MPI support, libgtest-dev for Google Test, and cmake for building the project
+
+    - name: Setup MPI Environment
+      run: |
+        echo "MPICH_VERSION=$(mpichversion)" >> $GITHUB_ENV
+      # Sets up the MPI environment and logs the version of MPICH installed
+
+    - name: Compile and Build Google Test
+      run: |
+        cd /usr/src/gtest
+        sudo cmake CMakeLists.txt -DBUILD_SHARED_LIBS=ON
+        sudo make
+        sudo cp *.so /usr/lib
+      # Compiles Google Test from source as shared libraries and moves the libraries to /current-user/lib for system-wide access
+
+    - name: Configure and Build Project
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DGTEST_LIBRARY=/usr/lib/libgtest.so -DGTEST_MAIN_LIBRARY=/usr/lib/libgtest_main.so
+        make
+      # Creates a build directory, configures the project with CMake to link against Google Test libraries, and builds the executable
+
+    - name: Run Tests
+      run: |
+        cd build
+        ./test_multiplication
+      # Executes the test binary to run the Google Test-based tests
